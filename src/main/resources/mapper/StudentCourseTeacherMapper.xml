@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.auggie.student_server.mapper.StudentCourseTeacherMapper">
+
+    <select id="selectExcellentGrades" resultType="CourseGrade">
+        SELECT c.cname as courseName, sct.grade as grade
+        FROM studentcourseteacher sct
+                 INNER JOIN course c ON sct.cid = c.cid
+        WHERE sct.sid = #{sid} AND sct.grade >= 90
+    </select>
+
+    <select id="selectFailedGrades" resultType="CourseGrade">
+        SELECT c.cname as courseName, sct.grade as grade
+        FROM studentcourseteacher sct
+                INNER JOIN course c ON sct.cid = c.cid
+        WHERE sct.sid = #{sid} AND sct.grade &lt; 60
+    </select>
+
+    <insert id="insertScores" useGeneratedKeys="true" keyProperty="sctid">
+        INSERT INTO studentcourseteacher (cid, tid, sid, grade, term)
+        VALUES
+        <foreach collection="list" item="score" separator=",">
+            (#{score.cid}, #{score.tid}, #{score.sid}, #{score.grade}, #{score.term})
+        </foreach>
+    </insert>
+
+    <select id="findByStudentId" resultType="CourseTeacherInfo">
+        SELECT course.cid, course.cname, teacher.tid, teacher.tname, studentcourseteacher.grade, course.ccredit
+        FROM studentms.studentcourseteacher studentcourseteacher INNER JOIN studentms.teacher teacher ON studentcourseteacher.tid = teacher.tid
+                                                                 INNER JOIN studentms.course course ON studentcourseteacher.cid = course.cid
+        WHERE studentcourseteacher.sid = #{sid} AND studentcourseteacher.term = #{term}
+    </select>
+
+    <select id="findBySearch" resultType="SCTInfo">
+        SELECT course.cid, course.cname, teacher.tid, teacher.tname, student.sid, student.sname, studentcourseteacher.grade, studentcourseteacher.term
+        FROM studentms.studentcourseteacher studentcourseteacher INNER JOIN studentms.student student ON studentcourseteacher.sid = student.sid
+        INNER JOIN studentms.teacher teacher ON studentcourseteacher.tid = teacher.tid
+        INNER JOIN studentms.course course ON studentcourseteacher.cid = course.cid
+        <where>
+            <if test="sid != null">
+                student.sid = #{sid}
+            </if>
+            <if test="tid != null">
+                AND teacher.tid = #{tid}
+            </if>
+            <if test="cid != null">
+                AND course.cid = #{cid}
+            </if>
+            <if test="sname != null">
+                <if test="sFuzzy == 0">
+                    AND student.sname = #{sname}
+                </if>
+                <if test="sFuzzy == 1">
+                    AND student.sname LIKE CONCAT('%', #{sname}, '%')
+                </if>
+            </if>
+            <if test="tname != null">
+                <if test="tFuzzy == 0">
+                    AND teacher.tname = #{tname}
+                </if>
+                <if test="tFuzzy == 1">
+                    AND teacher.tname LIKE CONCAT('%', #{tname}, '%')
+                </if>
+            </if>
+            <if test="cname != null">
+                <if test="cFuzzy == 0">
+                    AND course.cname = #{cname}
+                </if>
+                <if test="cFuzzy == 1">
+                    AND course.cname LIKE CONCAT('%', #{cname}, '%')
+                </if>
+            </if>
+            <if test="term != null">
+                AND studentcourseteacher.term = #{term}
+            </if>
+            <if test="lowBound != null">
+                AND studentcourseteacher.grade >= #{lowBound}
+            </if>
+            <if test="highBound != null">
+                AND #{highBound} >= studentcourseteacher.grade
+            </if>
+        </where>
+    </select>
+</mapper>
